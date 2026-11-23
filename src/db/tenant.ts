@@ -84,7 +84,7 @@ export function tenantScope(tenantId: string) {
             a.create = stampCreate(a.create, tenantId);
             a.update = guardUpdate(a.update, tenantId);
           }
-          return query(a as typeof args);
+          return query(a);
         },
       },
     },
