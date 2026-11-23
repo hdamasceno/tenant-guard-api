@@ -1,0 +1,93 @@
+// Tenancy model
+// -------------
+// Tenant, User and Membership are global. Every other table is tenant-owned:
+// it has a non-null tenantId and a (tenantId, id) unique key, and relations
+// between tenant-owned rows go through that composite key. That makes it
+// impossible, at the database level, to enrol a student of one tenant in a
+// course of another.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  OWNER
+  STAFF
+  VIEWER
+}
+
+model Tenant {
+  id          String       @id @default(uuid()) @db.Uuid
+  slug        String       @unique
+  name        String
+  createdAt   DateTime     @default(now())
+  memberships Membership[]
+  courses     Course[]
+  students    Student[]
+  enrollments Enrollment[]
+}
+
+model User {
+  id          String       @id @default(uuid()) @db.Uuid
+  email       String       @unique
+  name        String
+  memberships Membership[]
+}
+
+model Membership {
+  tenantId String @db.Uuid
+  userId   String @db.Uuid
+  role     Role
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([tenantId, userId])
+  @@index([userId])
+}
+
+model Course {
+  id          String       @id @default(uuid()) @db.Uuid
+  tenantId    String       @db.Uuid
+  code        String
+  title       String
+  capacity    Int
+  createdAt   DateTime     @default(now())
+  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  enrollments Enrollment[]
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, code])
+}
+
+model Student {
+  id          String       @id @default(uuid()) @db.Uuid
+  tenantId    String       @db.Uuid
+  name        String
+  email       String
+  createdAt   DateTime     @default(now())
+  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  enrollments Enrollment[]
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, email])
+}
+
+model Enrollment {
+  id        String   @id @default(uuid()) @db.Uuid
+  tenantId  String   @db.Uuid
+  courseId  String   @db.Uuid
+  studentId String   @db.Uuid
+  createdAt DateTime @default(now())
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  course    Course   @relation(fields: [tenantId, courseId], references: [tenantId, id], onDelete: Cascade)
+  student   Student  @relation(fields: [tenantId, studentId], references: [tenantId, id], onDelete: Cascade)
+
+  @@unique([tenantId, id])
+  @@unique([courseId, studentId])
+  @@index([tenantId, studentId])
+}

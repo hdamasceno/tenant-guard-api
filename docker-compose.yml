@@ -1,0 +1,16 @@
+# Local Postgres for development and tests only. The credentials are throwaway
+# defaults for a container bound to localhost, not secrets.
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: tenant_guard
+      POSTGRES_PASSWORD: tenant_guard
+      POSTGRES_DB: tenant_guard
+    ports:
+      - "127.0.0.1:5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tenant_guard"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
