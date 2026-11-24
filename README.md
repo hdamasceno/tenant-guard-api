@@ -131,6 +131,8 @@ The OpenAPI document is at `http://localhost:3000/openapi.json`; load it into an
 | `npm run typecheck` | `tsc --noEmit` with `strict`, `noUncheckedIndexedAccess`, `verbatimModuleSyntax` |
 | `npm test` | 39 Vitest integration tests against a **real Postgres** (a separate `_test` database, migrated automatically) |
 | `npm run coverage` | the same, with coverage |
+| `npm run check:secrets` | secret scan of the staged files (`-- --all` for every tracked file) |
+| `npm run test:hooks` | tests for the secret scanner (`node --test`) |
 
 What the tests cover:
 
@@ -144,8 +146,28 @@ What the tests cover:
   concurrent overbooking race.
 - **Docs**: every route is documented, every path placeholder is declared, every `$ref` resolves.
 
-CI starts a Postgres service container and runs lint, typecheck, build, migrations and the full
+CI runs a secret scan, then starts a Postgres service container and runs lint, typecheck, build, migrations and the full
 suite on every push and pull request.
+
+### Git hooks
+
+`npm install` sets up [Husky](https://typicode.github.io/husky/) hooks, so the checks CI runs
+also run locally, before anything leaves your machine:
+
+| Hook | Runs | Why |
+| --- | --- | --- |
+| `pre-commit` | secret scan, then lint, then typecheck | stop private keys, tokens and `.env` files before they are in history |
+| `pre-push` | `db:up` (starts the Docker Postgres if needed), then the 39 integration tests: HTTP through Express into Postgres with RLS, this API's end-to-end layer | do not push a branch that CI will reject |
+
+The secret scan (`scripts/check-secrets.mjs`, no dependencies) blocks `.env` files (except
+`.env.example`), key and certificate files (`.pem`, `.key`, `.p8`, `.p12`, `.jks`, SSH keys), and
+content that looks like a private key, cloud or API token, or a connection string with a password
+for a non-local host. It only reads the staged version of each file and never prints the value it
+found. If [gitleaks](https://github.com/gitleaks/gitleaks) is installed it runs too, as a second
+opinion. A false positive can be allowed with a `secret-scan: allow` comment on that line.
+
+In an emergency `git commit --no-verify` skips the hooks; CI still runs the same secret scan, plus
+gitleaks over the full history, on every push and pull request.
 
 ## Not included, on purpose
 

@@ -27,4 +27,10 @@ export default tseslint.config(
     },
   },
   { files: ['eslint.config.js'], extends: [tseslint.configs.disableTypeChecked] },
+  {
+    // Plain Node scripts (the secret scanner) sit outside the TypeScript project.
+    files: ['scripts/**/*.mjs'],
+    extends: [tseslint.configs.disableTypeChecked],
+    languageOptions: { globals: { process: 'readonly', console: 'readonly' } },
+  },
 );

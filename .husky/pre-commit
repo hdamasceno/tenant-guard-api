@@ -1,0 +1,6 @@
+# Runs before every commit. Cheapest and most important check first.
+# 1. Secret scan of the staged files (plus gitleaks when installed).
+npm run --silent check:secrets
+# 2. Lint and 3. typecheck the whole project.
+npm run --silent lint
+npm run --silent typecheck

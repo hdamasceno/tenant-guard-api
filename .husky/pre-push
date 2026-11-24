@@ -1,0 +1,6 @@
+# Runs before every push: the slower test suites.
+# This API has no browser UI, so its end-to-end layer is the integration
+# suite: real HTTP requests through Express into Postgres with row-level
+# security. It needs the local database (Docker), started here if needed.
+npm run --silent db:up
+npm test
